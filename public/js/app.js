@@ -4,25 +4,22 @@ const faces = {
   "Volk,HD":"img/volk.png",
   "Reinke,P":"img/reinke.png"
 }
-let currentYear=2019;
+let currentYear=2000;
 const yearRange = [1983,2021]
 
 const yearSelector = d3.select("input#year")
   .property("min", yearRange[0])
   .property("max", yearRange[1])
   .property("value", currentYear)
-
-
-d3.select("#current-year").text(currentYear);
-
-yearSelector
   .on("change", function (e) {
     e.preventDefault();
     let currentYear = yearSelector.property("value")
-    console.log(currentYear);
     d3.select("#current-year")
       .text(currentYear)
   })
+
+d3.select("#current-year").text(currentYear);
+
 
 /*=================SCALES=======================*/
 const scale = d3.scaleOrdinal(d3.schemeCategory10);
@@ -36,71 +33,78 @@ const svg = d3.select("svg#map");
 const height = 600;
 const width = 960;
 
-const linkG = svg.append("g")
-  .attr("id", "link")
-  
-const nodeG = svg.append("g")
-  .attr("id", "node")
-  .attr("stroke", "#fff")
-  .attr("stroke-width", 1.5)
+let link = svg.append("g")
+    .attr("id", "link")
+  .selectAll("line")
 
-const labelG = svg.append("g")
-  .attr("id", "label")
+let node = svg.append("g")
+    .attr("id", "node")
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 1.5)
+  .selectAll("circle")
+
+let label = svg.append("g")
+    .attr("id", "label")
+  .selectAll("text")
+
+let img = svg.append("g")
+    .attr("id", "img")
+  .selectAll("image")
+
+const simulation = d3.forceSimulation()
+  .force("link", d3.forceLink().id(d => d.id))
+  .force("charge", d3.forceManyBody().strength(-15))
+  .force("center", d3.forceCenter(width / 2, height / 2))
+  .force("collide", d3.forceCollide())
 
 
-const imgG = svg.append("g")
-  .attr("id", "img")
+/*=================Scales=======================*/
+let powerScale = d3.scalePow()
+  .exponent(.5)
+  .clamp(true)
+  .range([5,74])
 
+  let labelScale = d3.scalePow()
+    .exponent(.5)
+    .clamp(true)
+    .range([5,50])
 
+/*=======================================================*/
 /*=================Update function=======================*/
-const updateMap = data => {
+const updateMap = ({nodes, edges}) => {
   
-  // create the links and nodes from the
-  let links = data.edges.map(d => Object.create(d));
+
+  /*=================Update data=======================*/
+  // create the links and nodes from the data
+  let links = edges.map(d => Object.create(d));
 
   // remove the lowest 2% of links
   let weightRange = d3.extent(links, d => d.weight)
   //onsole.log(weightRange);
   links = links.filter(d => d.weight > weightRange[1] / 50)
   //console.log(d3.extent(links, d => d.weight));
-  const nodes = data.nodes.map(d => Object.create(d));
 
 
+  nodes = nodes.map(d => Object.create(d));
+
+/*=================Update scales=======================*/
   let powerRange = d3.extent(nodes, d => d.power);
 
-  let powerScale = d3.scalePow()
-    .exponent(.5)
-    .clamp(true)
-    .domain([powerRange[0], maxPower])
-    .range([5,74])
+  powerScale.domain([powerRange[0], maxPower])
+  labelScale.domain([powerRange[0], maxPower])
 
-  let labelScale = d3.scalePow()
-    .exponent(.5)
-    .clamp(true)
-    .domain([powerRange[0], maxPower])
-    .range([5,50])
 
   let distScale = d3.scaleSqrt()
     .domain([1,50])
     .range([200, 10])
 
-
-  const simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links).id(d => d.id))
-    .force("charge", d3.forceManyBody().strength(-15))
-    .force("center", d3.forceCenter(width / 2, height / 2).strength(1))
-    .force("collide", d3.forceCollide().radius(d=>powerScale(d.power)*1.4));
-
-  const link = linkG
-    .selectAll("line")
+  link = link
     .data(links)
     .join("line")
       .attr("stroke-width", d => Math.sqrt(d.weight));
 
-
-  const node = nodeG
-    .selectAll("circle")
-    .data(nodes)
+  node = node
+    .data(nodes, d => d.id)
     .join("circle")
       .attr("r", d => powerScale(d.power))
       .call(drag(simulation))
@@ -109,9 +113,8 @@ const updateMap = data => {
     .append("title")
     .text(d => d.name);
 
-  const label = labelG
-    .selectAll("text")
-    .data(nodes)
+  label = label
+    .data(nodes, d => d.id)
     .join("text")
       .text(d => d.name)
       .classed("hidden", d => d.power < minPower)
@@ -119,8 +122,7 @@ const updateMap = data => {
       
       //.text(d => (d.name === "Volk,HD") ? "" : d.name)
 
-  const img = imgG
-    .selectAll("image")
+  img = img
     .data(nodes.filter(d => ["Volk,HD", "Reinke,P"].includes(d.name)))
     .join("image")
       .call(drag(simulation))
@@ -129,6 +131,7 @@ const updateMap = data => {
       .attr("height", d => powerScale(d.power) * 2)
 
   
+  // apply the data-driven simulation 
   simulation.on("tick", () => {
     link
         .attr("x1", d => d.source.x)
@@ -146,6 +149,11 @@ const updateMap = data => {
         .attr("x", d => d.x - powerScale(d.power))
         .attr("y", d => d.y - powerScale(d.power))
   });
+
+  simulation.nodes(nodes);
+  simulation.force("link").links(links);
+  simulation.alpha(1).restart();
+  simulation.force("collide").radius(d=>powerScale(d.power)*1.4);
   return svg.node();
 }
 
