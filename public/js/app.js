@@ -14,12 +14,23 @@ const yearSelector = d3.select("input#year")
   .on("change", function (e) {
     e.preventDefault();
     let currentYear = yearSelector.property("value")
-    d3.select("#current-year")
-      .text(currentYear)
+    updateAll(currentYear);
   })
 
 d3.select("#current-year").text(currentYear);
 
+/*=================UPDATE=======================*/
+
+function updateAll(year) {
+  d3.select("#current-year")
+    .text(year)
+  let url = `./data/pubmap/pubmap${year}.json`
+  console.log(url)
+  d3.json(url)
+    .then(updateMap)
+}
+
+updateAll(currentYear);
 
 /*=================SCALES=======================*/
 const scale = d3.scaleOrdinal(d3.schemeCategory10);
@@ -53,39 +64,41 @@ let img = svg.append("g")
 
 const simulation = d3.forceSimulation()
   .force("link", d3.forceLink().id(d => d.id))
-  .force("charge", d3.forceManyBody().strength(-15))
+  .force("charge", d3.forceManyBody().strength(-45))
   .force("center", d3.forceCenter(width / 2, height / 2))
   .force("collide", d3.forceCollide())
 
 
 /*=================Scales=======================*/
 let powerScale = d3.scalePow()
-  .exponent(.5)
-  .clamp(true)
-  .range([5,74])
+    .exponent(.5)
+    .clamp(true)
+    .range([5,74])
 
-  let labelScale = d3.scalePow()
+let labelScale = d3.scalePow()
     .exponent(.5)
     .clamp(true)
     .range([5,50])
+let distScale = d3.scaleSqrt()
+    .domain([1,50])
+    .range([200, 10])
 
+  
 /*=======================================================*/
 /*=================Update function=======================*/
-const updateMap = ({nodes, edges}) => {
+function updateMap({nodes, edges}) {
   
-
   /*=================Update data=======================*/
   // create the links and nodes from the data
-  let links = edges.map(d => Object.create(d));
+  let links = edges.map(d => Object.assign({}, d));
 
+  let weightCutoff = d3.extent(links, d => d.weight)[1] / 50
   // remove the lowest 2% of links
-  let weightRange = d3.extent(links, d => d.weight)
-  //onsole.log(weightRange);
-  links = links.filter(d => d.weight > weightRange[1] / 50)
+  links = links.filter(d => d.weight > weightCutoff);
   //console.log(d3.extent(links, d => d.weight));
-
-
-  nodes = nodes.map(d => Object.create(d));
+  const oldNode = new Map(node.data().map(d => [d.id, d]));
+  console.log(oldNode);
+  nodes = nodes.map(d => Object.assign(oldNode.get(d.id) || {}, d));
 
 /*=================Update scales=======================*/
   let powerRange = d3.extent(nodes, d => d.power);
@@ -93,19 +106,18 @@ const updateMap = ({nodes, edges}) => {
   powerScale.domain([powerRange[0], maxPower])
   labelScale.domain([powerRange[0], maxPower])
 
-
-  let distScale = d3.scaleSqrt()
-    .domain([1,50])
-    .range([200, 10])
-
   link = link
-    .data(links)
+    .data(links, d => [d.source.id, d.target.id])
     .join("line")
       .attr("stroke-width", d => Math.sqrt(d.weight));
 
   node = node
     .data(nodes, d => d.id)
-    .join("circle")
+    .join(enter => enter
+      .append("circle")
+      .attr("cx", width / 2)
+      .attr("cy", height / 2)
+      )
       .attr("r", d => powerScale(d.power))
       .call(drag(simulation))
 
@@ -123,7 +135,7 @@ const updateMap = ({nodes, edges}) => {
       //.text(d => (d.name === "Volk,HD") ? "" : d.name)
 
   img = img
-    .data(nodes.filter(d => ["Volk,HD", "Reinke,P"].includes(d.name)))
+    .data(nodes.filter(d => ["Volk,HD", "Reinke,P"].includes(d.name)), d => d.id)
     .join("image")
       .call(drag(simulation))
       .attr("href", d => faces[d.name])
@@ -138,7 +150,6 @@ const updateMap = ({nodes, edges}) => {
         .attr("y1", d => d.source.y)
         .attr("x2", d => d.target.x)
         .attr("y2", d => d.target.y);
-
     node
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
@@ -152,8 +163,8 @@ const updateMap = ({nodes, edges}) => {
 
   simulation.nodes(nodes);
   simulation.force("link").links(links);
-  simulation.alpha(1).restart();
-  simulation.force("collide").radius(d=>powerScale(d.power)*1.4);
+  simulation.alpha(0.5).restart();
+  simulation.force("collide").radius(d=>powerScale(d.power)*1.3);
   return svg.node();
 }
 
@@ -184,16 +195,3 @@ const drag = simulation => {
       .on("end", dragended);
 }
 
-/*=================UPDATE=======================*/
-
-function updateAll(year) {
-  let url = `./data/pubmap/pubmap${year}.json`
-  console.log(url)
-  d3.json(url)
-    .then(updateMap)
-}
-
-
-
-
-updateAll(currentYear);
