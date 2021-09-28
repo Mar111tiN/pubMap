@@ -4,7 +4,7 @@ const faces = {
   "Volk,HD":"img/volk.png",
   "Reinke,P":"img/reinke.png"
 }
-let currentYear=1990;
+let currentYear=2019;
 const yearRange = [1983,2021]
 
 const yearSelector = d3.select("input#year")
@@ -28,8 +28,8 @@ yearSelector
 const scale = d3.scaleOrdinal(d3.schemeCategory10);
 const color = d => scale(d.group);
 
-
-
+const minPower = 20;
+const maxPower = 3000;
 
 /*=================DOM ELEMENTS=======================*/
 const svg = d3.select("svg#map");
@@ -37,53 +37,76 @@ const height = 600;
 const width = 960;
 
 const linkG = svg.append("g")
-  .attr("stroke", "#999")
-  .attr("stroke-opacity", 0.6)
-
-
+  .attr("id", "link")
+  
 const nodeG = svg.append("g")
+  .attr("id", "node")
   .attr("stroke", "#fff")
   .attr("stroke-width", 1.5)
 
-
 const labelG = svg.append("g")
-  .attr("font-size", "1.5em")
-  .attr("text-anchor", "middle")
-  .classed("label", true)
-  .attr("stroke", "blue")
-  .attr("stroke-width", "1px")
+  .attr("id", "label")
+
 
 const imgG = svg.append("g")
+  .attr("id", "img")
 
 
 /*=================Update function=======================*/
 const updateMap = data => {
   
   // create the links and nodes from the
-  const links = data.edges.map(d => Object.create(d));
+  let links = data.edges.map(d => Object.create(d));
+
+  // remove the lowest 2% of links
+  let weightRange = d3.extent(links, d => d.weight)
+  //onsole.log(weightRange);
+  links = links.filter(d => d.weight > weightRange[1] / 50)
+  //console.log(d3.extent(links, d => d.weight));
   const nodes = data.nodes.map(d => Object.create(d));
+
+
+  let powerRange = d3.extent(nodes, d => d.power);
+
+  let powerScale = d3.scalePow()
+    .exponent(.5)
+    .clamp(true)
+    .domain([powerRange[0], maxPower])
+    .range([5,74])
+
+  let labelScale = d3.scalePow()
+    .exponent(.5)
+    .clamp(true)
+    .domain([powerRange[0], maxPower])
+    .range([5,50])
+
+  let distScale = d3.scaleSqrt()
+    .domain([1,50])
+    .range([200, 10])
+
 
   const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id(d => d.id))
-    .force("charge", d3.forceManyBody().strength(-40))
-    .force("center", d3.forceCenter(width / 2, height / 2))
-    //.force("collide", d3.forceCollide().radius(d=>Math.sqrt(d.power)));
+    .force("charge", d3.forceManyBody().strength(-15))
+    .force("center", d3.forceCenter(width / 2, height / 2).strength(1))
+    .force("collide", d3.forceCollide().radius(d=>powerScale(d.power)*1.4));
 
   const link = linkG
     .selectAll("line")
     .data(links)
     .join("line")
       .attr("stroke-width", d => Math.sqrt(d.weight));
-      
+
+
   const node = nodeG
     .selectAll("circle")
     .data(nodes)
     .join("circle")
-      .attr("r", d => Math.sqrt(d.power))
-      .attr("fill", color)
-      .call(drag(simulation));
+      .attr("r", d => powerScale(d.power))
+      .call(drag(simulation))
 
-  node.append("title")
+  node
+    .append("title")
     .text(d => d.name);
 
   const label = labelG
@@ -91,7 +114,8 @@ const updateMap = data => {
     .data(nodes)
     .join("text")
       .text(d => d.name)
-      .attr("font-size", d => Math.sqrt(d.power))
+      .classed("hidden", d => d.power < minPower)
+      .attr("font-size", d => labelScale(d.power))
       
       //.text(d => (d.name === "Volk,HD") ? "" : d.name)
 
@@ -101,8 +125,8 @@ const updateMap = data => {
     .join("image")
       .call(drag(simulation))
       .attr("href", d => faces[d.name])
-      .attr("width", d => Math.sqrt(d.power) * 2)
-      .attr("height", d => Math.sqrt(d.power) * 2)
+      .attr("width", d => powerScale(d.power) * 2)
+      .attr("height", d => powerScale(d.power) * 2)
 
   
   simulation.on("tick", () => {
@@ -117,10 +141,10 @@ const updateMap = data => {
         .attr("cy", d => d.y);
     label
         .attr("x", d => d.x)
-        .attr("y", d => d.y + Math.sqrt(d.power) * 2 - 10);
+        .attr("y", d => d.y + powerScale(d.power) + labelScale(d.power)-3);
     img
-        .attr("x", d => d.x - Math.sqrt(d.power))
-        .attr("y", d => d.y - Math.sqrt(d.power))
+        .attr("x", d => d.x - powerScale(d.power))
+        .attr("y", d => d.y - powerScale(d.power))
   });
   return svg.node();
 }

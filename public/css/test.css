@@ -37,11 +37,8 @@ h2 {
 
 }
 
-.label {
-  font-size: 2.5rem;
-  color: "green"
-}
-/*----------------MapProjection----------------*/
+
+/*----------------MAP STYLES----------------*/
 
 div#map {
   text-align: left;
@@ -64,7 +61,7 @@ svg#map {
 }
 
 /*===============GRAPH STYLES=====================*/
-g.label text {
+g#label text {
   fill: rgb(74, 74, 78);
   text-anchor: middle;
   vertical-align: middle;
@@ -72,8 +69,32 @@ g.label text {
   stroke-width: 1px;
   }
 
-/*=================SELECTORS=======================*/
+g#label text {
+    fill: rgb(18, 18, 20);
+    text-anchor: middle;
+    vertical-align: middle;
+    stroke: rgb(1, 1, 8);;
+    stroke-width: 1px;
+    }
 
+g#label text.hidden {
+  visibility: hidden;
+  }
+
+g#link line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+g#node circle {
+  stroke: #fff;
+  stroke-width: 0.5px;
+  fill: rgb(118, 118, 148)
+}
+
+
+
+/*=================SELECTORS=======================*/
 /*----------------general settings-----------------*/
 .select-container {
   width: 400px;
@@ -113,27 +134,9 @@ input {
   font-size: 1rem;
 }
 
-/*------------worldmap selectors------------------*/
 
 
-
-
-/*--------------scatter selectors-----------------*/
-
-#scatterSelect {
-    width: 100%;
-    margin: 20px auto;
-}
-
-#scatterSelect #bininput, .dataselect{
-    display: block;
-    margin: 0 auto;
-    text-align: center;
-}
-
-#bininput span {
-    display:inline;
-}
+/*------------TOOLTIP------------------*/
 
 .tooltip {
   opacity: 0;
@@ -169,4 +172,3 @@ input {
   left: 50%;
   margin-left: -6px;
 }
-
