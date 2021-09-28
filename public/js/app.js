@@ -4,8 +4,7 @@ const faces = {
   "Volk,HD":"img/volk.png",
   "Reinke,P":"img/reinke.png"
 }
-const YEAR=2000;
-
+const YEAR=1990;
 const yearRange = [1983,2021]
 
 function updateAll(year) {
@@ -15,10 +14,14 @@ function updateAll(year) {
     .then(updateMap)
 }
 
+
 const yearSelector = d3.select("input#year")
   .property("min", yearRange[0])
   .property("max", yearRange[1])
   .property("value", YEAR)
+
+
+d3.select("#current-year").text(YEAR);
 
 yearSelector
   .on("change", function (e) {

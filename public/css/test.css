@@ -59,18 +59,16 @@ svg#map {
   display: block;
   border: 1px solid gray;
   border-radius: 6%;
-  /* background-image: url('../img/dieter.jpeg');  */
+  background-image: url('../img/publications.jpeg');  */
   background-color: black;
 }
 
 /*===============GRAPH STYLES=====================*/
-g text {
-  fill: rgb(2, 0, 128);
+g.label text {
+  fill: rgb(74, 74, 78);
   text-anchor: middle;
   vertical-align: middle;
-  stroke: blue;
-  fill: yellow;
-  font-size:1.5em;
+  stroke: rgb(74, 74, 78);;
   stroke-width: 1px;
   }
 
