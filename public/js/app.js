@@ -4,24 +4,16 @@ const faces = {
   "Volk,HD":"img/volk.png",
   "Reinke,P":"img/reinke.png"
 }
-const YEAR=1990;
+let currentYear=1990;
 const yearRange = [1983,2021]
-
-function updateAll(year) {
-  let url = `./data/pubmap/pubmap${year}.json`
-  console.log(url)
-  d3.json(url)
-    .then(updateMap)
-}
-
 
 const yearSelector = d3.select("input#year")
   .property("min", yearRange[0])
   .property("max", yearRange[1])
-  .property("value", YEAR)
+  .property("value", currentYear)
 
 
-d3.select("#current-year").text(YEAR);
+d3.select("#current-year").text(currentYear);
 
 yearSelector
   .on("change", function (e) {
@@ -32,51 +24,69 @@ yearSelector
       .text(currentYear)
   })
 
+/*=================SCALES=======================*/
+const scale = d3.scaleOrdinal(d3.schemeCategory10);
+const color = d => scale(d.group);
 
+
+
+
+/*=================DOM ELEMENTS=======================*/
+const svg = d3.select("svg#map");
+const height = 600;
+const width = 960;
+
+const linkG = svg.append("g")
+  .attr("stroke", "#999")
+  .attr("stroke-opacity", 0.6)
+
+
+const nodeG = svg.append("g")
+  .attr("stroke", "#fff")
+  .attr("stroke-width", 1.5)
+
+
+const labelG = svg.append("g")
+  .attr("font-size", "1.5em")
+  .attr("text-anchor", "middle")
+  .classed("label", true)
+  .attr("stroke", "blue")
+  .attr("stroke-width", "1px")
+
+const imgG = svg.append("g")
+
+
+/*=================Update function=======================*/
 const updateMap = data => {
-  const height = 600
-  const width = 960
-  const scale = d3.scaleOrdinal(d3.schemeCategory10);
-  const color = d => scale(d.group);
-
+  
+  // create the links and nodes from the
   const links = data.edges.map(d => Object.create(d));
   const nodes = data.nodes.map(d => Object.create(d));
 
-  console.log(nodes)
   const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id(d => d.id))
     .force("charge", d3.forceManyBody().strength(-40))
     .force("center", d3.forceCenter(width / 2, height / 2))
     //.force("collide", d3.forceCollide().radius(d=>Math.sqrt(d.power)));
 
-  const svg = d3.select("svg#map")
-
-  const link = svg.append("g")
-      .attr("stroke", "#999")
-      .attr("stroke-opacity", 0.6)
+  const link = linkG
     .selectAll("line")
     .data(links)
     .join("line")
       .attr("stroke-width", d => Math.sqrt(d.weight));
       
-  const node = svg.append("g")
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 1.5)
+  const node = nodeG
     .selectAll("circle")
     .data(nodes)
     .join("circle")
       .attr("r", d => Math.sqrt(d.power))
       .attr("fill", color)
       .call(drag(simulation));
+
   node.append("title")
     .text(d => d.name);
 
-  const label = svg.append("g")
-      .attr("font-size", "1.5em")
-      .attr("text-anchor", "middle")
-      .classed("label", true)
-      .attr("stroke", "blue")
-      .attr("stroke-width", "1px")
+  const label = labelG
     .selectAll("text")
     .data(nodes)
     .join("text")
@@ -85,8 +95,7 @@ const updateMap = data => {
       
       //.text(d => (d.name === "Volk,HD") ? "" : d.name)
 
-  const img = svg.append("g")
-      .classed("image", true)
+  const img = imgG
     .selectAll("image")
     .data(nodes.filter(d => ["Volk,HD", "Reinke,P"].includes(d.name)))
     .join("image")
@@ -116,6 +125,8 @@ const updateMap = data => {
   return svg.node();
 }
 
+
+/*=================DRAG======================*/
 const drag = simulation => {
 
   function dragstarted(event) {
@@ -141,4 +152,16 @@ const drag = simulation => {
       .on("end", dragended);
 }
 
-updateAll(YEAR)
+/*=================UPDATE=======================*/
+
+function updateAll(year) {
+  let url = `./data/pubmap/pubmap${year}.json`
+  console.log(url)
+  d3.json(url)
+    .then(updateMap)
+}
+
+
+
+
+updateAll(currentYear);
