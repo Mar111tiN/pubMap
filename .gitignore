@@ -1,0 +1,7 @@
+public/data
+public/img
+!public/img/smiley*
+node_modules
+.ipynb_checkpoints
+__pycache__
+.DS_Store

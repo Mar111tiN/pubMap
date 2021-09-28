@@ -1,0 +1,174 @@
+/*Wrapper*/
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Source Sans Pro', sans-serif;
+  background: #f2f1ef;
+}
+
+h1 {
+  font-weight: 700;
+  font-size: 3rem;
+  padding: 5px;
+  margin: 0;
+}
+
+h2 {
+  font-weight: 400;
+  font-size: 2.5rem;
+  padding: 5px;
+  margin: 0;
+}
+
+#topnav {
+  background: #efe8d2;
+  padding: 20px 30px;
+  text-align: center;
+
+}
+
+.container {
+  max-width: 1260px;
+  margin: 10px auto;
+  position: relative;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+
+}
+
+.label {
+  font-size: 2.5rem;
+  color: "green"
+}
+/*----------------MapProjection----------------*/
+
+div#map {
+  text-align: left;
+}
+
+div#map svg {
+  width: 960px;
+  margin: 5px auto;
+  height: 600px;
+} 
+
+
+svg#map {
+  margin: 0 auto 10px auto;
+  display: block;
+  border: 1px solid gray;
+  border-radius: 6%;
+  /* background-image: url('../img/dieter.jpeg');  */
+  background-color: black;
+}
+
+/*===============GRAPH STYLES=====================*/
+g text {
+  fill: rgb(2, 0, 128);
+  text-anchor: middle;
+  vertical-align: middle;
+  stroke: blue;
+  fill: yellow;
+  font-size:1.5em;
+  stroke-width: 1px;
+  }
+
+/*=================SELECTORS=======================*/
+
+/*----------------general settings-----------------*/
+.select-container {
+  width: 400px;
+  height:80px;
+  border: 0px solid gray;
+  border-radius: 10px;
+  margin:auto;
+}
+
+.selector {
+  margin: 0 auto;
+  display: block;
+  text-align: center;
+  width: 370px;
+  padding: 5px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1rem;
+}
+
+.selector.hidden {
+  visibility: hidden;
+  display:block;
+  height: 30px;
+}
+.selector p {
+  display: inline;
+}
+.selector select {
+  float: right;
+  width: 200px;
+  font-size: 1rem;
+  outline: none;
+}
+
+input {
+  float:right;
+  font-size: 1rem;
+}
+
+/*------------worldmap selectors------------------*/
+
+
+
+
+/*--------------scatter selectors-----------------*/
+
+#scatterSelect {
+    width: 100%;
+    margin: 20px auto;
+}
+
+#scatterSelect #bininput, .dataselect{
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+}
+
+#bininput span {
+    display:inline;
+}
+
+.tooltip {
+  opacity: 0;
+  position: absolute;
+  pointer-events: none;
+  background-color: rgba(178, 185,196,0.8);
+  border: 1px rgba(97, 122, 165, 0.8) solid;
+  border-radius: 8px;
+  padding: 8px 15px;
+  width: 300px;
+
+} 
+
+.tooltip h4 {
+  margin: 0 0 8px 0;
+}
+
+.tooltip p {
+  margin: 2px;
+}
+.tooltip .activeKey {
+  border: 1px solid darkgray;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.tooltip:before {
+  content: ' ';
+  position: absolute;
+  border: 12px solid transparent;
+  border-bottom-color: rgba(97, 122, 165, 0.8) ;
+  top: -25px;
+  left: 50%;
+  margin-left: -6px;
+}
+

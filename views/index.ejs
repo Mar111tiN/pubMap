@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>D3 PublicationMap</title>
+  <link rel="stylesheet" type="text/css" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css?family=Roboto|Source+Sans+Pro:400,600" rel="stylesheet">
+</head>
+<body>
+    <div id="topnav">
+            <h1>The Interactive Publication Map</h1>
+            <h2 id="subtitle">
+                Who did Dieter publish with?
+            </h2>
+            <div class="select-container" id="data-select">
+                <div class="selector year">
+                    <p id="year-display">Current year: <span id="current-year"></span> </p>
+                    <input id="year" type="range" step="1">
+                </div> 
+            </div>   
+        </div>
+    <div class="container">        
+        <div id='map'>
+            <svg
+                version='1.1'
+                baseProfile='full'
+                xmlns='http://www.w3.org/2000/svg'
+                id='map'>      
+            </svg>
+        </div>    
+    </div> 
+    <script type="module" src="/js/app.js"></script>
+</body>
+</html>

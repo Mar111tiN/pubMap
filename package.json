@@ -1,0 +1,29 @@
+{
+  "name": "pubmap",
+  "version": "1.0.0",
+  "description": "force-directed graph for publication interaction",
+  "main": "index.js",
+  "dependencies": {
+    "ejs": "^2.7.4",
+    "express": "^4.17.1",
+    "nodemon": "^2.0.12"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mar111tiN/pubMap.git"
+  },
+  "keywords": [
+    "d3",
+    "publication"
+  ],
+  "author": "Martin Szyska",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Mar111tiN/pubMap/issues"
+  },
+  "homepage": "https://github.com/Mar111tiN/pubMap#readme"
+}
