@@ -17,6 +17,7 @@ const yearSelector = d3.select("input#year")
     updateAll(currentYear);
   })
 
+
 d3.select("#current-year").text(currentYear);
 
 /*=================UPDATE=======================*/
@@ -64,9 +65,21 @@ let img = svg.append("g")
 
 const simulation = d3.forceSimulation()
   .force("link", d3.forceLink().id(d => d.id))
-  .force("charge", d3.forceManyBody().strength(-45))
+  .force("charge", d3.forceManyBody().strength(-25))
   .force("center", d3.forceCenter(width / 2, height / 2))
   .force("collide", d3.forceCollide())
+
+/*
+for each iteration:
+  alpha += (alphaTargtt - alpha) * alphaDecay
+  velocity -= velocity * velocityDecay
+
+
+alpha values
+  .alphaDecay()     
+*/
+
+
 
 
 /*=================Scales=======================*/
@@ -92,12 +105,16 @@ function updateMap({nodes, edges}) {
   // create the links and nodes from the data
   let links = edges.map(d => Object.assign({}, d));
 
-  let weightCutoff = d3.extent(links, d => d.weight)[1] / 50
+  let weightCutoff = d3.extent(links, d => d.weight)[1] / 50;
+  weightCutoff = 0;
   // remove the lowest 2% of links
   links = links.filter(d => d.weight > weightCutoff);
   //console.log(d3.extent(links, d => d.weight));
   const oldNode = new Map(node.data().map(d => [d.id, d]));
   console.log(oldNode);
+
+  // here assign the x and y coordinates for entering nodes in {}!!!
+  // {"cx": width / 2, "cy": height / 2}
   nodes = nodes.map(d => Object.assign(oldNode.get(d.id) || {}, d));
 
 /*=================Update scales=======================*/
@@ -143,7 +160,9 @@ function updateMap({nodes, edges}) {
       .attr("height", d => powerScale(d.power) * 2)
 
   
-  // apply the data-driven simulation 
+  // apply the data-driven simulation
+  // has to be in function scope as the power scales are adjusted based on 
+  // data ranges --> change to global? 
   simulation.on("tick", () => {
     link
         .attr("x1", d => d.source.x)
@@ -163,7 +182,7 @@ function updateMap({nodes, edges}) {
 
   simulation.nodes(nodes);
   simulation.force("link").links(links);
-  simulation.alpha(0.5).restart();
+  simulation.alpha(1).restart();
   simulation.force("collide").radius(d=>powerScale(d.power)*1.3);
   return svg.node();
 }

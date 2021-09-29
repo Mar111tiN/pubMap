@@ -77,6 +77,11 @@ def get_coauthors(pubmed_df):
     '''
     
     coauthor_list = []
+    # convert the authors list if it is stored as string
+    try:
+        pubmed_df.loc[:, "authors"] = pubmed_df["authors"].apply(eval)
+    except:
+        True
     pubmed_df['date'] = pd.DatetimeIndex(pubmed_df['publication_date']).year
     for i, pubrow in pubmed_df.iterrows():
         
@@ -215,6 +220,6 @@ def analyse_pubmed(result_df, outfolder=".", max_nodes=200, min_power=1, min_wei
     
     for year in coauthors['date'].sort_values().unique():
         print(year)
-        _,_ = save_by_year(coauthors, year=year, past_years=past_years, save_folder=json_folder,
+        _,_ = save_by_year(coauthors, node_ids, year=year, past_years=past_years, save_folder=json_folder,
         max_nodes=max_nodes, min_power=min_power, min_weight=min_weight)
     print("Finished!!")
