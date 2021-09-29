@@ -92,7 +92,7 @@ def get_coauthors(pubmed_df):
     return coauthors
 
 
-def get_nodes(ca_df, min_power=1):
+def get_nodes(ca_df, min_power=1, max_nodes=0):
     '''
     get a list of all authors in ca_df and compute:
         power: number of interactions
@@ -117,45 +117,46 @@ def get_nodes(ca_df, min_power=1):
                 .sort_values('power', ascending=False) \
                 .reset_index()
     nodes['group'] = 1
-    
-    return nodes.query("power >= @min_power")
+    # reduce nodes
+    nodes = nodes.query("power >= @min_power")
+    return nodes.iloc[:max_nodes,:] if max_nodes else nodes
 
 
-def get_data(coauthor_df, node_ids, min_power=2, min_weight=1, after=1900, year=2030, max_nodes=10000000):
+def get_edges(ca_df, nodes, min_weight=1, max_edges=0, remove_stumps=True):
     '''
-    compute the interactions between authors and compute weight
+    compute the interactions between possibly reduced authors from ca_df and compute weight
+    reduce the source and target to node_ids
     '''
-    
-    # reduce the coauthor_df
-    ca_df = coauthor_df.query('@after <= date <= @year')
-    # first get the nodes and merge with global ids and reduce to max_nodes
-    nodes = get_nodes(ca_df, min_power=min_power).merge(node_ids).iloc[:max_nodes,:]
-    
+        
     edges = ca_df.groupby(["A","B"]).size().reset_index(name="weight").sort_values("weight", ascending=False).reset_index(drop=True).query('weight >= @min_weight')
 
     edges = edges.rename({"A":"source", "B":"target"}, axis=1)
+    
     # reduce the edges to current nodes
     # merge in source
-    edges = edges.merge(nodes.loc[:,['name', 'id']], left_on="source", right_on="name").rename({'name':'in_source', 'id':'sourceID'}, axis=1)
-    
+    edges = edges.merge(nodes.loc[:,['name', 'id']], left_on="source", right_on="name").rename({'name':'in_source', 'id':'sourceID'}, axis=1) 
     # merge in target
     edges = edges.merge(nodes.loc[:,['name', 'id']], left_on="target", right_on="name").rename({'name':'in_target', 'id':'targetID'}, axis=1)
-    
     # reduce to existing in left and right
     edges = edges.query("in_source == in_source and in_target == in_target").loc[:, ['sourceID', 'targetID', 'source', 'target','weight']]
     
+    # reduce to max_edges if set
+    if max_edges:
+        print("Applying max_edges")
+        edges = edges.sort_values("weight", ascending=False).loc[:max_edges]
+
     #reformat the ids
     for col in ['sourceID', 'targetID']:
         edges.loc[:, col] = edges.loc[:, col].astype(int)   
-        
-    # reduce the nodes to names in edges
-    names = pd.concat([edges.loc[:, ['source']].rename({'source':'name'},axis=1), edges.loc[:, ['target']].rename({'target':'name'},axis=1)]).drop_duplicates()
-    nodes = nodes.merge(names).loc[:, [ 'id', 'name', 'power', 'last', 'group']]
-    nodes.loc[:, 'last'] = year - nodes['last']
+    
+    if remove_stumps:
+        # reduce the nodes to names in edges
+        names = pd.concat([edges.loc[:, ['source']].rename({'source':'name'},axis=1), edges.loc[:, ['target']].rename({'target':'name'},axis=1)]).drop_duplicates()
+        nodes = nodes.merge(names).loc[:, [ 'id', 'name', 'power', 'last', 'group']]
     # reduce columns
     edges = edges.loc[:,['sourceID', 'targetID', 'weight']].rename({"sourceID":"source", "targetID":"target"}, axis=1)
     
-    return ca_df, nodes, edges
+    return nodes, edges
 
 
 def get_info(coauthors, nodes, edges):
@@ -173,53 +174,75 @@ def get_info(coauthors, nodes, edges):
         links=edge_info
     )
 
-def save_by_year(coauthors, node_ids, past_years=25, year=2030, save_folder=".", max_nodes=200, min_power=1, min_weight=1):
+def retrieve_data(coauthor_df, node_ids, edge_ids, max_nodes=0, min_power=1, max_edges=0, min_weight=1, remove_stumps=True):
     '''
     get edges and nodes until a certain year and save as json
     '''
 
-    ca_df, nodes, edges = get_data(coauthors, node_ids, min_weight=min_weight, after=year - past_years, year=year, max_nodes=max_nodes)
+    # get the reduced nodes and apply node_ids for unique ids
+    nodes = get_nodes(coauthor_df, max_nodes=max_nodes, min_power=min_power).merge(node_ids).loc[:, ["id", "name", "power", "last", "group"]]
+    
+    # get the edges and reduce nodes to shared by linkage
+    nodes, edges = get_edges(coauthor_df, nodes, min_weight=min_weight, max_edges=max_edges, remove_stumps=remove_stumps)
+    
+    edges = edges.merge(edge_ids).loc[:, ['id', 'source', 'target', 'weight']]
     
     j_nodes = json.loads(nodes.to_json(orient="records"))
     j_edges = json.loads(edges.to_json(orient="records"))
-    j_info = get_info(ca_df, nodes, edges)
+    j_info = get_info(coauthor_df, nodes, edges)
     
-    json_file = os.path.join(save_folder, f"pubmap{year}.json")
-    with open(json_file, "w") as file:
-        json.dump({"nodes":j_nodes, "edges":j_edges, "info":j_info}, file)
-    return nodes, edges
+    return {"nodes":j_nodes, "edges":j_edges, "info":j_info}
 
 
 
-def analyse_pubmed(result_df, outfolder=".", max_nodes=200, min_power=1, min_weight=1, past_years=25):
+def analyse_pubmed(result_df, outfolder=".", max_nodes=0, min_power=1, max_edges=0, min_weight=1, past_years=25, remove_stumps=True):
     # results = pd.read_csv(pubmed_results, sep="\t")
     # print(f"Pubmed list {os.path.basename(pubmed_results)} loaded - aggregating coauthorship..")
-    coauthors = get_coauthors(result_df)
+    coauthor_df = get_coauthors(result_df)
     print("Done! - Retrieving nodes and edges..")
 
     # get the global nodes
-    nodes = get_nodes(coauthors)
+    nodes = get_nodes(coauthor_df)
     # store the ids of the global nodes list for unique ids
-    node_ids = nodes.reset_index().rename({'index': 'id'}, axis=1).loc[:,['id', 'name']]
+    nodes = nodes.reset_index().rename({'index': 'id'}, axis=1).loc[:, ["id", "name", "power", "last", "group"]]
+    node_ids = nodes.loc[:,['id', 'name']]
 
     # retrieve the global edges
-    ca_df, nodes, edges = get_data(coauthors, node_ids)
+    nodes, edges = get_edges(coauthor_df, nodes)
+    # and apply indices
+    edges = edges.reset_index().rename({"index":"id"}, axis=1).loc[:, ['id', 'source', 'target', 'weight']]
+    edge_ids = edges.drop(columns="weight")
 
 
+    #### Saving globals
     print("Done! - Saving nodes and edges as csv..")
     
     nodes.to_csv(os.path.join(outfolder, "pubmap_nodes.csv"), sep="\t", index=False)
     edges.to_csv(os.path.join(outfolder, "pubmap_edges.csv"), sep="\t", index=False)
     json_folder = os.path.join(outfolder, "pubmap")
-    
+    # save global infos
     info_file = os.path.join(json_folder, f"pubmap_info.json")
     with open(info_file, "w") as file:
-        json.dump(get_info(ca_df, nodes, edges), file)
+        json.dump(get_info(coauthor_df, nodes, edges), file)
 
     print(f"Done! - Saving nodes and edges per year as json into ..{json_folder}..")
     
-    for year in coauthors['date'].sort_values().unique():
+    for year in coauthor_df['date'].sort_values().unique():
         print(year)
-        _,_ = save_by_year(coauthors, node_ids, year=year, past_years=past_years, save_folder=json_folder,
-        max_nodes=max_nodes, min_power=min_power, min_weight=min_weight)
+        past_year = year - past_years
+        ca_df = coauthor_df.query('@past_year <= date <= @year')
+        data_json = retrieve_data(
+            ca_df, node_ids, edge_ids,
+            max_nodes=max_nodes, 
+            min_power=min_power,
+            max_edges=max_edges,
+            min_weight=min_weight,
+            remove_stumps=remove_stumps
+        )
+        # save to datapath
+        json_file = os.path.join(json_folder, f"pubmap{year}.json")
+        with open(json_file, "w") as file:
+            json.dump(data_json, file)
+
+
     print("Finished!!")
