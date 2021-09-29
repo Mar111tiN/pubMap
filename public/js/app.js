@@ -4,7 +4,12 @@ const faces = {
   "Volk,HD":"img/volk.png",
   "Reinke,P":"img/reinke.png"
 }
-let currentYear=2000;
+
+
+
+
+
+let currentYear=1983;
 const yearRange = [1983,2021]
 
 const yearSelector = d3.select("input#year")
@@ -13,8 +18,9 @@ const yearSelector = d3.select("input#year")
   .property("value", currentYear)
   .on("change", function (e) {
     e.preventDefault();
-    let currentYear = yearSelector.property("value")
+    currentYear = yearSelector.property("value")
     updateAll(currentYear);
+    timer.restart
   })
 
 
@@ -32,6 +38,14 @@ function updateAll(year) {
 }
 
 updateAll(currentYear);
+let timer = d3.interval(() => {
+  currentYear++;
+  updateAll(currentYear);
+  yearSelector.property("value", currentYear)
+}, 2000)
+
+
+
 
 /*=================SCALES=======================*/
 const scale = d3.scaleOrdinal(d3.schemeCategory10);
@@ -78,8 +92,6 @@ for each iteration:
 alpha values
   .alphaDecay()     
 */
-
-
 
 
 /*=================Scales=======================*/

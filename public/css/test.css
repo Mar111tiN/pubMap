@@ -36,8 +36,6 @@ h2 {
   justify-content: space-between;
 
 }
-
-
 /*----------------MAP STYLES----------------*/
 
 div#map {
@@ -45,7 +43,7 @@ div#map {
 }
 
 div#map svg {
-  width: 960px;
+  width: 1260px;
   margin: 5px auto;
   height: 600px;
 } 
@@ -60,6 +58,16 @@ svg#map {
 }
 
 /*===============GRAPH STYLES=====================*/
+
+#year-display {
+  font-size: 2.5em;
+}
+
+input#year {
+  visibility: hidden;
+}
+
+
 g#label text {
   fill: rgb(74, 74, 78);
   text-anchor: middle;
