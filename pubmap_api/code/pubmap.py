@@ -161,12 +161,12 @@ def get_edges(ca_df, nodes, min_weight=1, max_edges=0, remove_stumps=True):
 
 def get_info(coauthors, nodes, edges):
     '''
-    make info dictionary to send as json
+    make info dictionary in json-readable output
     '''
     # {"min": int(coauthors['date'].min()), "max":int(coauthors['date'].max())}
     years = [int(coauthors['date'].min()), int(coauthors['date'].max())]
-    node_info = nodes['power'].describe().astype(int).to_json()
-    edge_info = edges['weight'].describe().astype(int).to_json()
+    node_info = json.loads(nodes['power'].describe().astype(int).to_json())
+    edge_info = json.loads(edges['weight'].describe().astype(int).to_json())
     
     return dict(
         year=years,
@@ -176,7 +176,7 @@ def get_info(coauthors, nodes, edges):
 
 def retrieve_data(coauthor_df, node_ids, edge_ids, max_nodes=0, min_power=1, max_edges=0, min_weight=1, remove_stumps=True):
     '''
-    get edges and nodes until a certain year and save as json
+    get edges and nodes until a certain year and save as json_compatible dict
     '''
 
     # get the reduced nodes and apply node_ids for unique ids
@@ -189,9 +189,9 @@ def retrieve_data(coauthor_df, node_ids, edge_ids, max_nodes=0, min_power=1, max
     
     j_nodes = json.loads(nodes.to_json(orient="records"))
     j_edges = json.loads(edges.to_json(orient="records"))
-    j_info = get_info(coauthor_df, nodes, edges)
+    info = get_info(coauthor_df, nodes, edges)
     
-    return {"nodes":j_nodes, "edges":j_edges, "info":j_info}
+    return {"nodes":j_nodes, "edges":j_edges, "info":info}
 
 
 
