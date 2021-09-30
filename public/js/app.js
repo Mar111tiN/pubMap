@@ -21,11 +21,11 @@ function init(info) {
 
   const yearSelector = d3.select("input#year")
   .property("min", yearRange[0])
-  .property("max", yearRange[1])
+  .property("max", yearRange[1]+2)
   .property("value", currentYear)
   .on("change", function (e) {
     e.preventDefault();
-    currentYear = this.property("value")
+    currentYear = yearSelector.property("value")
     updateAll(currentYear);
     timer.restart()
   })
@@ -60,7 +60,10 @@ function init(info) {
   const svg = d3.select("svg#map");
   const height = 600;
   const width = 960;
-  
+  const centerX = width / 2
+  const centerY = height / 2;
+
+
   let link = svg.append("g")
       .attr("id", "link")
     .selectAll("line")
@@ -81,29 +84,10 @@ function init(info) {
   
   const simulation = d3.forceSimulation()
     .force("link", d3.forceLink().id(d => d.id))
-    .force("charge", d3.forceManyBody().strength(-25))
-    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("charge", d3.forceManyBody().strength(-5))
+    .force("center", d3.forceCenter(width / 2, height / 2)
+      .strength(0.05))
     .force("collide", d3.forceCollide())
-  
-  /*
-  for each iteration:
-    alpha += (alphaTargtt - alpha) * alphaDecay
-    velocity -= velocity * velocityDecay
-  
-    velocityDecay(decay) represents athmospheric friction
-  alpha values
-    .alphaDecay()  
-    
-    
-
-  FORCES:
-    d3.forceCenter([x,y])
-      .strength(0 < s < 1)  default = 1
-
-    d3.forceCollide(d => d.r) # needs to be called after changes of radius
-      .strength()
-  */
-  
 
   
   /*=================Scales=======================*/
@@ -118,18 +102,12 @@ function init(info) {
       .exponent(.5)
       .clamp(true)
       .range([5,50])
+  
   let distScale = d3.scaleSqrt()
       .domain([1,50])
       .range([200, 10])
-  
-  
-  // const node_trans = node.transition()
-  //   .duration(500)
-  
-  // const label_trans = label.transition()
-  //   .duration(500)
-    
-  
+
+
   /*=======================================================*/
   /*=================Update function=======================*/
   function updateMap({nodes, edges, info}) {
@@ -139,9 +117,13 @@ function init(info) {
     const oldNodes = new Map(node.data().map(d => [d.id, d]));
   
     // create the links and nodes from the data
-      // here assign the x and y coordinates for entering nodes in {}!!!
-    // {"cx": width / 2, "cy": height / 2}
-    nodes = nodes.map(d => Object.assign(oldNodes.get(d.id) || {}, d));
+    // here assign the x and y coordinates for entering nodes in {}
+    nodes = nodes.map(d => Object.assign(oldNodes.get(d.id) || {
+      "x": Math.random() * width, 
+      "y": Math.random() * height
+    }, d));
+
+    console.log(nodes);
     edges = edges.map(d => Object.assign({}, d));
   
     // let weightCutoff = d3.extent(edges, d => d.weight)[1] / 50;
@@ -151,79 +133,13 @@ function init(info) {
     //console.log(d3.extent(links, d => d.weight));
   
   /*=================Update scales=======================*/
-    let powerRange = d3.extent(nodes, d => d.power);
+    let minPower = info['nodes']['min']
+    powerScale.domain([minPower, maxPower])
+    labelScale.domain([minPower, maxPower])
   
-    powerScale.domain([powerRange[0], maxPower])
-    labelScale.domain([powerRange[0], maxPower])
-  
-    let minPower = d3.max(nodes, d => d.power) / 50;
-    console.log(minPower);
-    link = link
-      .data(edges, d => d.id)
-      .join(
-        enter => enter
-          .append("line")
-            .attr("stroke-width", 0)
-            .attr("opacity",0)
-          .transition()
-          .duration(250)
-            .attr("stroke-width", d => Math.sqrt(d.weight))
-            .attr("opacity", 1),
-          update => update
-            .attr("stroke-width", d => Math.sqrt(d.weight)),
-          exit => exit
-            .transition()
-              .duration(550)
-              .attr("opacity",0)
-            .remove()
-        )
-  
-    node = node
-      .data(nodes, d => d.id)
-      .join(
-        enter => enter
-          .append("circle")
-            .attr("r", 0)
-            .attr("opacity", 0)
-          .transition()
-            .duration(750)
-            .attr("opacity", 1)
-            .attr("r", d => powerScale(d.power)),
-        update => update,
-        exit => exit
-            .transition()
-            .duration(750)
-              .attr("r", 0)
-              .attr("opacity", 0)
-            .remove()
-        )
-        .attr("r", d => powerScale(d.power))
-        .call(drag(simulation))
-  
-    label = label
-      .data(nodes, d => d.id)
-      .join(
-        enter => enter
-          .append("text")
-            .text(d => d.name)
-            .attr("opacity", 0)
-          .transition()
-            .duration(500)
-            .attr("opacity",1)
-        )
-        .classed("hidden", d => d.power < minPower)
-        .attr("font-size", d => labelScale(d.power))
-  
-  
-    img = img
-      .data(nodes.filter(d => ["Volk,HD", "Reinke,P"].includes(d.name)), d => d.id)
-      .join("image")
-        .call(drag(simulation))
-        .attr("href", d => faces[d.name])
-        .attr("width", d => powerScale(d.power) * 2)
-        .attr("height", d => powerScale(d.power) * 2)
-  
-    
+    let powerCutoff = info['nodes']['75%']
+    let weigthCutoff = info['links']['50%']
+    console.log(powerCutoff);
     // apply the data-driven simulation
     // has to be in function scope as the power scales are adjusted based on 
     // data ranges --> change to global? 
@@ -243,14 +159,80 @@ function init(info) {
           .attr("x", d => d.x - powerScale(d.power))
           .attr("y", d => d.y - powerScale(d.power))
     });
-  
+    simulation.alphaTarget(0.1).restart();
     simulation.nodes(nodes);
     simulation.force("link").links(edges);
-    simulation.alpha(1).restart();
-    simulation.force("collide").radius(d=>powerScale(d.power)*1.3);
+    simulation.force("collide").radius(d=>powerScale(d.power)*0.3);
+
+    link = link
+      .data(edges.filter(d => d.weight >= weigthCutoff), d => d.id)
+      .join(
+        enter => enter
+          .append("line")
+            .attr("stroke-width", 0)
+            .attr("opacity",0)
+          .transition()
+          .duration(750)
+            .attr("stroke-width", d => Math.sqrt(d.weight))
+            .attr("opacity", 1),
+          update => update
+            .attr("stroke-width", d => Math.sqrt(d.weight)),
+          exit => exit
+            .transition()
+              .duration(550)
+              .attr("opacity",0)
+            .remove()
+        )
+  
+    node = node
+      .data(nodes, d => d.id)
+      .join(
+        enter => enter
+          .append("circle")
+            .attr("r", 0)
+            .attr("opacity", 0)
+            .call(drag(simulation))
+          .transition()
+            .duration(750)
+            .attr("opacity", 1)
+            .attr("r", d => powerScale(d.power)),
+        update => update
+        .transition()
+        .duration(500)
+        .attr("r", d => powerScale(d.power)),
+        exit => exit
+          .transition()
+            .duration(500)
+            .attr("r", 0)
+            .attr("opacity", 0)
+            .remove()
+        )
+        
+
+    img = img
+    .data(nodes.filter(d => ["Volk,HD", "Reinke,P"].includes(d.name)), d => d.id)
+    .join("image")
+      .call(drag(simulation))
+      .attr("href", d => faces[d.name])
+      .attr("width", d => powerScale(d.power) * 2)
+      .attr("height", d => powerScale(d.power) * 2)
+  
+    label = label
+      .data(nodes.filter(d => d.power > powerCutoff), d => d.id)
+      .join(
+        enter => enter
+          .append("text")
+            .text(d => d.name)
+            .attr("opacity", 0)
+          .transition()
+            .duration(500)
+            .attr("opacity",1)
+        )
+        .attr("font-size", d => labelScale(d.power))
+
+
     return svg.node();
   }
-
 }
 
 /*=================DRAG======================*/

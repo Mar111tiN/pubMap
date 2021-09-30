@@ -13,24 +13,13 @@
     d3.forceCenter([x,y])
       .strength(0 < s < 1)  default = 1
 
-    d3.forceCollide(d => d.r) # needs to be called after changes of radius
-      .strength()
+    Collision
+    nodes are treated as circles with given radius
+
+    d3.forceCollide() # needs to be called after changes of radius
+      .radius(d => d.r)
+      .strength(0 < s < 1)
+
+    Link forces
   */
   
-
-
-
-// YEAR SELECTOR
-function createYearSelector(info) {
-  // retrieve the info data
-  const yearRange = info['year'];
-
-  return d3.select("input#year")
-    .property("min", yearRange[0])
-    .property("max", yearRange[1])
-    .on("change", function (e) {
-      e.preventDefault();
-      updateAll(this.property("value"));
-      timer.restart()
-    })
-}
