@@ -43,7 +43,7 @@ div#map {
 }
 
 div#map svg {
-  width: 1260px;
+  width: 960px;
   margin: 5px auto;
   height: 600px;
 } 
