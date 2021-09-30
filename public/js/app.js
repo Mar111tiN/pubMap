@@ -12,13 +12,23 @@ const info_json = "./data/pubmap/info.json"
 d3.json(info_json)
   .then(init)
 
-
 function init(info) {
 
-  let currentYear=info['year'][0];
+  // retrieve the info data
+  const yearRange = info['year'];
+  let currentYear=yearRange[0];
   console.log(info)
 
-  let yearSelector = createYearSelector(info, currentYear)
+  const yearSelector = d3.select("input#year")
+  .property("min", yearRange[0])
+  .property("max", yearRange[1])
+  .property("value", currentYear)
+  .on("change", function (e) {
+    e.preventDefault();
+    currentYear = this.property("value")
+    updateAll(currentYear);
+    timer.restart()
+  })
 
   d3.select("#current-year").text(currentYear);
 
@@ -140,7 +150,6 @@ function init(info) {
     // edges = edges.filter(d => d.weight > weightCutoff);
     //console.log(d3.extent(links, d => d.weight));
   
-    
   /*=================Update scales=======================*/
     let powerRange = d3.extent(nodes, d => d.power);
   
@@ -241,28 +250,8 @@ function init(info) {
     simulation.force("collide").radius(d=>powerScale(d.power)*1.3);
     return svg.node();
   }
+
 }
-
-
-
-
-// YEAR SELECTOR
-function createYearSelector(info, currentYear) {
-  // retrieve the info data
-  const yearRange = info['year'];
-
-  return d3.select("input#year")
-  .property("min", yearRange[0])
-  .property("max", yearRange[1])
-  .property("value", currentYear)
-  .on("change", function (e) {
-    e.preventDefault();
-    currentYear = yearSelector.property("value")
-    updateAll(currentYear);
-    timer.restart()
-  })
-}
-
 
 /*=================DRAG======================*/
 const drag = simulation => {

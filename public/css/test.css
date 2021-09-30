@@ -64,7 +64,7 @@ svg#map {
 }
 
 input#year {
-  visibility: hidden;
+  visibility:visible;
 }
 
 
