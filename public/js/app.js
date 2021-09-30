@@ -211,12 +211,21 @@ function init(info) {
 
     img = img
     .data(nodes.filter(d => ["Volk,HD", "Reinke,P"].includes(d.name)), d => d.id)
-    .join("image")
-      .call(drag(simulation))
-      .attr("href", d => faces[d.name])
-      .attr("width", d => powerScale(d.power) * 2)
-      .attr("height", d => powerScale(d.power) * 2)
-  
+    .join(
+      enter => enter
+        .append("image")
+          .call(drag(simulation))
+          .attr("href", d => faces[d.name])
+          .attr("width", d => powerScale(d.power) * 2)
+          .attr("height", d => powerScale(d.power) * 2),
+      update => update
+        .transition()
+        .duration(500)
+        .attr("width", d => powerScale(d.power) * 2)
+        .attr("height", d => powerScale(d.power) * 2)
+    )
+
+
     label = label
       .data(nodes.filter(d => d.power > powerCutoff), d => d.id)
       .join(
