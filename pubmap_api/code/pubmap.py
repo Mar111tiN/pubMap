@@ -176,7 +176,7 @@ def get_info(coauthors, nodes, edges):
 
 def retrieve_data(coauthor_df, node_ids, edge_ids, max_nodes=0, min_power=1, max_edges=0, min_weight=1, remove_stumps=True):
     '''
-    get edges and nodes until a certain year and save as json_compatible dict
+    get edges and nodes until a certain year
     '''
 
     # get the reduced nodes and apply node_ids for unique ids
@@ -187,12 +187,19 @@ def retrieve_data(coauthor_df, node_ids, edge_ids, max_nodes=0, min_power=1, max
     
     edges = edges.merge(edge_ids).loc[:, ['id', 'source', 'target', 'weight']]
     
-    j_nodes = json.loads(nodes.to_json(orient="records"))
-    j_edges = json.loads(edges.to_json(orient="records"))
     info = get_info(coauthor_df, nodes, edges)
     
-    return {"nodes":j_nodes, "edges":j_edges, "info":info}
+    return nodes, edges, info
 
+
+def to_json_dict(nodes, edges, info):
+    '''
+    convert the data as json_compatible dict
+    '''
+    j_nodes = json.loads(nodes.to_json(orient="records"))
+    j_edges = json.loads(edges.to_json(orient="records"))
+
+    return {"nodes":j_nodes, "edges":j_edges, "info":info}
 
 
 def analyse_pubmed(result_df, outfolder=".", max_nodes=0, min_power=1, max_edges=0, min_weight=1, past_years=25, remove_stumps=True):
@@ -231,7 +238,7 @@ def analyse_pubmed(result_df, outfolder=".", max_nodes=0, min_power=1, max_edges
         print(year)
         past_year = year - past_years
         ca_df = coauthor_df.query('@past_year <= date <= @year')
-        data_json = retrieve_data(
+        nodes, edges, info = retrieve_data(
             ca_df, node_ids, edge_ids,
             max_nodes=max_nodes, 
             min_power=min_power,
@@ -239,10 +246,12 @@ def analyse_pubmed(result_df, outfolder=".", max_nodes=0, min_power=1, max_edges
             min_weight=min_weight,
             remove_stumps=remove_stumps
         )
+
+
         # save to datapath
         json_file = os.path.join(json_folder, f"pubmap{year}.json")
         with open(json_file, "w") as file:
-            json.dump(data_json, file)
+            json.dump(to_json_dict(nodes, edges, info), file)
 
 
     print("Finished!!")
