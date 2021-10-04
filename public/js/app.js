@@ -5,19 +5,19 @@ const faces = {
   "Reinke,P":"img/reinke.png"
 }
 
-const info_json = "./data/pubmap/info.json"
+const info_json = "./data/pubmap/pubmap_info.json"
 
 
 // run the entire thing based on the info json
 d3.json(info_json)
   .then(init)
 
-function init(info) {
+function init(stats) {
 
   // retrieve the info data
-  const yearRange = info['year'];
+  const yearRange = stats['year'];
   let currentYear=yearRange[0];
-  console.log(info)
+  console.log(stats)
 
   const yearSelector = d3.select("input#year")
   .property("min", yearRange[0])
@@ -49,20 +49,20 @@ function init(info) {
   let timer = d3.interval(() => {
     updateAll(++currentYear);
     yearSelector.property("value", currentYear)
-  }, 3000)
+  }, 2500)
   
   
   /*=================SCALES=======================*/
-  const scale = d3.scaleOrdinal(d3.schemeCategory10);
-  const color = d => scale(d.group);
+  // apply if groups are set via affiliations
+  // const scale = d3.scaleOrdinal(d3.schemeCategory10);
+  // const color = d => scale(d.group);
   
   /*=================DOM ELEMENTS=======================*/
   const svg = d3.select("svg#map");
   const height = 600;
   const width = 960;
-  const centerX = width / 2
+  const centerX = width / 2;
   const centerY = height / 2;
-
 
   let link = svg.append("g")
       .attr("id", "link")
@@ -82,19 +82,14 @@ function init(info) {
       .attr("id", "img")
     .selectAll("image")
   
-  const simulation = d3.forceSimulation()
-    .force("link", d3.forceLink().id(d => d.id))
-    .force("charge", d3.forceManyBody().strength(-5))
-    .force("center", d3.forceCenter(width / 2, height / 2)
-      .strength(0.05))
-    .force("collide", d3.forceCollide())
-
-  
   /*=================Scales=======================*/
-  let maxPower = 3000;
-  
+  // get globals for the scaling
+  // set maxPower below the actual maximum power to make VH and RP comparable
+  let maxPower = 2800;
+  let maxWeight = stats['links']['max'];
+  console.log(maxWeight);
   let powerScale = d3.scalePow()
-      .exponent(.5)
+      .exponent(.75)
       .clamp(true)
       .range([5,74])
   
@@ -103,11 +98,22 @@ function init(info) {
       .clamp(true)
       .range([5,50])
   
+  // scale for weight
   let distScale = d3.scaleSqrt()
-      .domain([1,50])
-      .range([200, 10])
+      .range([60, 20])
 
+  let strengthScale = d3.scaleLinear()
+      .range([0.2,1])
 
+  const linkDist = (d) => distScale(d.weight) + powerScale(d.source.power) + powerScale(d.target.power);
+
+  const simulation = d3.forceSimulation()
+    .velocityDecay(0.5)
+    .force("charge", d3.forceManyBody())
+    .force("center", d3.forceCenter(centerX, centerY)
+      .strength(0.05))
+    .force("link", d3.forceLink().id(d => d.id))
+    .force("collide", d3.forceCollide())
   /*=======================================================*/
   /*=================Update function=======================*/
   function updateMap({nodes, edges, info}) {
@@ -123,7 +129,7 @@ function init(info) {
       "y": Math.random() * height
     }, d));
 
-    console.log(nodes);
+    console.log(info);
     edges = edges.map(d => Object.assign({}, d));
   
     // let weightCutoff = d3.extent(edges, d => d.weight)[1] / 50;
@@ -134,9 +140,22 @@ function init(info) {
   
   /*=================Update scales=======================*/
     let minPower = info['nodes']['min']
-    powerScale.domain([minPower, maxPower])
-    labelScale.domain([minPower, maxPower])
-  
+    powerScale.domain([minPower, maxPower]);
+    labelScale.domain([minPower, maxPower]);
+    distScale.domain([stats['links']['min'],maxWeight]);
+    strengthScale.domain([info['links']['min'], maxWeight])
+
+    simulation.alphaTarget(0.50).restart();
+    simulation.nodes(nodes);
+    simulation.force("charge").strength(-.5 * info['nodes']['count']);
+    simulation.force("link")
+      .links(edges)
+      .distance(d => linkDist(d))
+      .strength(d => strengthScale(d.weight));
+    simulation.force("collide").radius(d=>powerScale(d.power)*0.8);
+
+
+
     let powerCutoff = info['nodes']['75%']
     let weigthCutoff = info['links']['50%']
     console.log(powerCutoff);
@@ -159,13 +178,9 @@ function init(info) {
           .attr("x", d => d.x - powerScale(d.power))
           .attr("y", d => d.y - powerScale(d.power))
     });
-    simulation.alphaTarget(0.1).restart();
-    simulation.nodes(nodes);
-    simulation.force("link").links(edges);
-    simulation.force("collide").radius(d=>powerScale(d.power)*0.3);
 
     link = link
-      .data(edges.filter(d => d.weight >= weigthCutoff), d => d.id)
+      .data(edges, d => d.id)
       .join(
         enter => enter
           .append("line")
@@ -173,17 +188,33 @@ function init(info) {
             .attr("opacity",0)
           .transition()
           .duration(750)
-            .attr("stroke-width", d => Math.sqrt(d.weight))
+            .attr("stroke-width", d => d.weight / 5)
             .attr("opacity", 1),
           update => update
-            .attr("stroke-width", d => Math.sqrt(d.weight)),
+            .attr("stroke-width", d => d.weight / 5),
           exit => exit
             .transition()
               .duration(550)
               .attr("opacity",0)
             .remove()
         )
-  
+    img = img
+    .data(nodes.filter(d => ["Volk,HD", "Reinke,P"].includes(d.name)), d => d.id)
+    .join(
+      enter => enter
+        .append("image")
+          .call(drag(simulation))
+          .attr("href", d => faces[d.name])
+          .attr("width", d => powerScale(d.power) * 2)
+          .attr("height", d => powerScale(d.power) * 2),
+      update => update
+        .transition()
+        .duration(500)
+        .attr("width", d => powerScale(d.power) * 2)
+        .attr("height", d => powerScale(d.power) * 2)
+    ) 
+
+
     node = node
       .data(nodes, d => d.id)
       .join(
@@ -207,27 +238,9 @@ function init(info) {
             .attr("opacity", 0)
             .remove()
         )
-        
-
-    img = img
-    .data(nodes.filter(d => ["Volk,HD", "Reinke,P"].includes(d.name)), d => d.id)
-    .join(
-      enter => enter
-        .append("image")
-          .call(drag(simulation))
-          .attr("href", d => faces[d.name])
-          .attr("width", d => powerScale(d.power) * 2)
-          .attr("height", d => powerScale(d.power) * 2),
-      update => update
-        .transition()
-        .duration(500)
-        .attr("width", d => powerScale(d.power) * 2)
-        .attr("height", d => powerScale(d.power) * 2)
-    )
-
 
     label = label
-      .data(nodes.filter(d => d.power > powerCutoff), d => d.id)
+      .data(nodes.filter(d => d.power > powerCutoff && !["Volk,HD", "Reinke,P"].includes(d.name)), d => d.id)
       .join(
         enter => enter
           .append("text")

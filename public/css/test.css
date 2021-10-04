@@ -22,7 +22,7 @@ h2 {
 
 #topnav {
   background: #efe8d2;
-  padding: 20px 30px;
+  padding: 10px 10px;
   text-align: center;
 
 }
@@ -40,6 +40,7 @@ h2 {
 
 div#map {
   text-align: left;
+  margin: auto;
 }
 
 div#map svg {
@@ -89,8 +90,8 @@ g#label text.hidden {
   }
 
 g#link line {
-  stroke: rgb(131, 13, 155);
-  stroke-opacity: 0.3;
+  stroke: rgb(74, 74, 78);
+  stroke-opacity: 0.4;
 }
 
 g#node circle {
@@ -98,7 +99,6 @@ g#node circle {
   stroke-width: 0.5px;
   fill: rgb(118, 118, 148)
 }
-
 
 
 /*=================SELECTORS=======================*/

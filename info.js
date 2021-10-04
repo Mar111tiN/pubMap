@@ -21,5 +21,11 @@
       .strength(0 < s < 1)
 
     Link forces
+
+    d3.forceLink
+      .links()  # add the array of links
+      .id(d => d.id)     # defines what source and target represents on the nodes
+      .distance(d => d.data)
+      .strength(d => d.data)     # how much the distance is enforced
   */
   
